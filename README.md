@@ -6,7 +6,7 @@ A full-stack web application for managing bookmarks with automatic metadata enri
 
 - Save and organize bookmarks with tags
 - Automatic metadata extraction (title, description, favicon)
-- AI-generated summaries using Claude
+- AI-generated summaries using Claude (requires API key)
 - Search and filter by tag
 - Clean, responsive UI
 - JWT-based authentication
@@ -74,7 +74,8 @@ A full-stack web application for managing bookmarks with automatic metadata enri
    ```env
    DATABASE_URL="postgresql://username:password@localhost:5432/bookmarkdb?schema=public"
    JWT_SECRET="your-super-secret-jwt-key-change-this"
-   CLAUDE_API_KEY="your-anthropic-api-key-here"
+   # CLAUDE_API_KEY is optional - set it to enable AI summaries
+   # Get your key from https://console.anthropic.com/
    ```
 
 5. **Start the development servers**
@@ -123,8 +124,9 @@ A full-stack web application for managing bookmarks with automatic metadata enri
 2. Backend immediately responds with the saved bookmark
 3. Asynchronous enrichment process starts:
    - Fetches webpage and extracts metadata (title, description, favicon)
-   - Calls Claude API to generate a concise summary
-4. Bookmark is updated with enriched data (non-blocking)
+   - If Claude API key is configured, generates an AI summary
+   - Bookmark is updated with enriched data (non-blocking)
+4. AI summaries are optional — the app works without a Claude API key
 
 ## Architecture Notes
 
@@ -169,8 +171,8 @@ cd apps/api && npx prisma migrate reset
 **Railway (Backend)**
 
 - `DATABASE_URL` (provided by Railway Postgres plugin)
-- `JWT_SECRET` (set a strong random secret)
-- `CLAUDE_API_KEY` (your Anthropic API key)
+- `JWT_SECRET` (set a strong random secret, **required**)
+- `CLAUDE_API_KEY` (your Anthropic API key, **optional** — without it, AI summaries are disabled)
 
 ### Important Production Considerations
 
@@ -202,16 +204,19 @@ model Bookmark {
   createdAt   DateTime @default(now())
   enrichedAt  DateTime?
   user        User     @relation(fields: [userId], references: [id])
-  tags        TagMany  @relation(orderBy: [name_asc])
+  tags        Tag[]
 }
 
 model Tag {
   id        Int      @id @default(autoincrement())
   userId    Int
-  name      String   @unique
+  name      String
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
-  bookmarks Bookmark[] @relation(orderBy: [createdAt_desc])
+  bookmarks Bookmark[]
+
+  @@unique([userId, name])
+  @@index([userId])
 }
 ```
 

@@ -49,6 +49,7 @@ plus a Claude-generated AI summary. Can search and filter by tags.
 - Favicon fetching often fails — fail silently and leave `favicon_url` null
 - Claude API calls must include a timeout (10s max) — wrap in try/catch
 - Never block the POST /bookmarks response — enrichment runs asynchronously
+- AI summaries are disabled if `CLAUDE_API_KEY` is not set or is a placeholder value — enrichment completes without errors
 
 ## Build Order
 
