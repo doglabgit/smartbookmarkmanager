@@ -24,9 +24,13 @@ async function enrichBookmark(bookmarkId) {
     // 2. Fetch metadata (title, description, favicon)
     const metadata = await fetchMetadata(bookmark.url);
 
-    // 3. Generate AI summary if we have at least title or description AND API key configured
+    // 3. Generate AI summary if we have at least title or description AND a valid API key configured
     let aiSummary = null;
-    if (process.env.CLAUDE_API_KEY && (metadata.title || metadata.description)) {
+    const hasValidApiKey = process.env.CLAUDE_API_KEY &&
+                           process.env.CLAUDE_API_KEY !== 'your-anthropic-api-key-here' &&
+                           !process.env.CLAUDE_API_KEY.includes('your-');
+
+    if (hasValidApiKey && (metadata.title || metadata.description)) {
       try {
         aiSummary = await generateSummary(
           bookmark.url,
@@ -37,6 +41,8 @@ async function enrichBookmark(bookmarkId) {
         console.error(`Summary generation failed for ${bookmarkId}:`, summaryError.message);
         // Continue without summary - it's optional enrichment
       }
+    } else if (process.env.CLAUDE_API_KEY && !hasValidApiKey) {
+      console.log(`Skipping AI summary for ${bookmarkId} - CLAUDE_API_KEY not set to a real key (using placeholder)`);
     } else if (!process.env.CLAUDE_API_KEY) {
       console.log(`Skipping AI summary for ${bookmarkId} - CLAUDE_API_KEY not configured`);
     }
