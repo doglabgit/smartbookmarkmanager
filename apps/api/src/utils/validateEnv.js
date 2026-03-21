@@ -1,7 +1,7 @@
 const logger = require('../logger');
 
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
-const optionalEnvVars = ['CLAUDE_API_KEY', 'ENRICHMENT_CONCURRENCY', 'REDIS_URL', 'PORT', 'NODE_ENV'];
+const optionalEnvVars = ['CLAUDE_API_KEY', 'ENRICHMENT_CONCURRENCY', 'REDIS_URL', 'PORT', 'NODE_ENV', 'ALLOWED_ORIGINS'];
 
 function validateEnvironment() {
   const missing = requiredEnvVars.filter((key) => !process.env[key]);
@@ -26,12 +26,24 @@ function validateEnvironment() {
     }
   }
 
+  // Validate ALLOWED_ORIGINS: cannot be wildcard when using credentials
+  if (process.env.ALLOWED_ORIGINS) {
+    const origins = process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim());
+    if (origins.includes('*')) {
+      throw new Error(
+        'ALLOWED_ORIGINS cannot contain "*" when credentials (cookies) are enabled. ' +
+        'Set specific origins like "http://localhost:3001,https://your-app.vercel.app".'
+      );
+    }
+  }
+
   // Log configuration (without secrets)
   logger.info('Environment validated', {
     nodeEnv: process.env.NODE_ENV || 'development',
     enrichmentConcurrency: process.env.ENRICHMENT_CONCURRENCY || '10 (default)',
     hasClaudeApiKey: !!process.env.CLAUDE_API_KEY,
-    hasRedisUrl: !!process.env.REDIS_URL
+    hasRedisUrl: !!process.env.REDIS_URL,
+    allowedOrigins: process.env.ALLOWED_ORIGINS || 'default (localhost:3001, 127.0.0.1:3001)'
   });
 }
 

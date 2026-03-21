@@ -1,15 +1,13 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
 const authMiddleware = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { createRateLimiter } = require('../middleware/rateLimiter');
 const { validate } = require('../middleware/validate');
 const { generateToken: generateCsrfToken, setCsrfCookie, clearCsrfCookie } = require('../middleware/csrf');
 const { registerSchema, loginSchema } = require('../../validation/schemas');
-
-const prisma = new PrismaClient();
+const prisma = require('../database');
 const router = express.Router();
 
 // Rate limit auth endpoints: 5 requests per minute per IP

@@ -1,11 +1,9 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const asyncHandler = require('../utils/asyncHandler');
 const { createRateLimiter } = require('../middleware/rateLimiter');
 const { validate } = require('../middleware/validate');
 const { bookmarkCreateSchema, bookmarkUpdateSchema } = require('../../validation/schemas');
-
-const prisma = new PrismaClient();
+const prisma = require('../database');
 const router = express.Router();
 
 // Rate limit bookmark creation: 30 per minute per user ID

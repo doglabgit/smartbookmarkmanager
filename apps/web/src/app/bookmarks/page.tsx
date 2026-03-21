@@ -37,6 +37,12 @@ export default function BookmarksPage() {
 
   const router = useRouter();
 
+  // Helper: Get CSRF token from cookies
+  const getCsrfToken = () => {
+    const match = document.cookie.match(/csrfToken=([^;]+)/);
+    return match ? match[1] : null;
+  };
+
   // Check if user is authenticated (simple check for cookie)
   useEffect(() => {
     const hasToken = document.cookie.includes('accessToken');
@@ -100,11 +106,17 @@ export default function BookmarksPage() {
       const url = editingBookmark ? `/api/bookmarks/${editingBookmark.id}` : '/api/bookmarks';
       const method = editingBookmark ? 'PATCH' : 'POST';
 
+      const csrfToken = getCsrfToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(body),
         credentials: 'include',
       });
@@ -145,8 +157,15 @@ export default function BookmarksPage() {
     }
 
     try {
+      const csrfToken = getCsrfToken();
+      const headers: HeadersInit = {};
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/bookmarks/${id}`, {
         method: 'DELETE',
+        headers,
         credentials: 'include',
       });
 
@@ -161,8 +180,15 @@ export default function BookmarksPage() {
   };
 
   const handleLogout = async () => {
+    const csrfToken = getCsrfToken();
+    const headers: HeadersInit = {};
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     await fetch('/api/auth/logout', {
       method: 'POST',
+      headers,
       credentials: 'include',
     });
     router.push('/login');

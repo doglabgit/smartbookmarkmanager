@@ -1,16 +1,14 @@
-const { PrismaClient } = require('@prisma/client');
 const { fetchMetadata } = require('./metadata');
 const { generateSummary, trackClaudeCall } = require('./claude');
 const logger = require('../logger');
 const { Sema: Semaphore } = require('async-sema');
 const { enrichmentActive, enrichmentSuccessTotal, enrichmentFailureTotal } = require('../metrics');
+const prisma = require('../database');
 
 // Limit concurrent enrichment jobs to prevent overwhelming DB/API
 // Tune this value based on DB pool size and Claude rate limits
 const ENRICHMENT_CONCURRENCY = parseInt(process.env.ENRICHMENT_CONCURRENCY || '10', 10);
 const enrichmentSemaphore = new Semaphore(ENRICHMENT_CONCURRENCY);
-
-const prisma = new PrismaClient();
 
 async function enrichBookmark(bookmarkId) {
   // Track active jobs

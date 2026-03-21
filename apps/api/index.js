@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
 const logger = require('./src/logger'); // Initialize logger first
 const { validateEnvironment } = require('./src/utils/validateEnv');
 const authMiddleware = require('./src/middleware/auth');
@@ -13,6 +12,7 @@ const errorMiddleware = require('./src/middleware/errorMiddleware');
 const requestIdMiddleware = require('./src/middleware/requestId');
 const { csrfProtect } = require('./src/middleware/csrf');
 const { metricsMiddleware, metricsEndpoint } = require('./src/metrics');
+const prisma = require('./src/database');
 
 // Validate environment on startup (fail fast) — after logger is ready
 try {
@@ -23,7 +23,6 @@ try {
 }
 
 const app = express();
-const prisma = new PrismaClient();
 
 // Middleware
 app.use(cookieParser());
@@ -50,7 +49,20 @@ app.use(cors({
 
 // Security headers
 app.use(helmet({
-  contentSecurityPolicy: false, // We'll configure custom CSP for Tailwind if needed
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline for Next.js hydration; tighten in prod if possible
+      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline for Tailwind
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"], // API calls via same-origin (proxied through Next.js)
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"], // Prevent clickjacking
+      baseUri: ["'self'"],
+      formAction: ["'self'"]
+    }
+  }
 }));
 
 // Request ID must be early to capture all downstream activity
