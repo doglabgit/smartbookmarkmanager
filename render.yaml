@@ -1,13 +1,13 @@
 # Render Blueprint Manifest
 # See: https://render.com/docs/blueprint-spec
 
-services:
-  # PostgreSQL Database
-  - type: postgres
-    name: smartbookmark-db
+databases:
+  - name: smartbookmark-db
+    type: postgresql
     plan: free
     version: "15"
 
+services:
   # Backend API
   - type: web
     name: smartbookmark-api
