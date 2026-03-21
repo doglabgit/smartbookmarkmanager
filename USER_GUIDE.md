@@ -451,6 +451,7 @@ If you have security concerns, contact your system administrator.
 - ✅ Structured logging and metrics
 - ✅ Health check endpoint
 - ✅ Docker deployment support
+- ✅ Dark mode toggle
 
 ### Planned for Future Releases
 

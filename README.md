@@ -10,8 +10,9 @@ A full-stack web application for managing bookmarks with automatic metadata enri
 - Automatic metadata extraction (title, description, favicon)
 - AI-generated summaries using Claude (requires API key)
 - Search and filter by tag
-- Clean, responsive UI
+- Clean, responsive UI with dark mode toggle
 - JWT-based authentication
+- Implemented with custom design system (Helvetica Neue, JetBrains Mono, indigo primary)
 
 ## Tech Stack
 
