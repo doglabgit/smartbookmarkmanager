@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+logs
+.git
+.gitignore
+.env*
+!.env.example
+prisma/migrations
+coverage
+tests
+jest.config.js
+*.md
+.next
+.vercel

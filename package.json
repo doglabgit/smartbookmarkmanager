@@ -19,9 +19,11 @@
     "lint:web": "cd apps/web && npm run lint",
     "lint:api": "cd apps/api && npm run lint",
     "test": "npm run test:api",
-    "test:api": "cd apps/api && npm test"
+    "test:api": "cd apps/api && npm test",
+    "prepare": "husky install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.0"
   }
 }

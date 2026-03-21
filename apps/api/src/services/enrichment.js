@@ -1,11 +1,27 @@
 const { PrismaClient } = require('@prisma/client');
 const { fetchMetadata } = require('./metadata');
-const { generateSummary } = require('./claude');
+const { generateSummary, trackClaudeCall } = require('./claude');
+const logger = require('../logger');
+const { Sema: Semaphore } = require('async-sema');
+const { enrichmentActive, enrichmentSuccessTotal, enrichmentFailureTotal } = require('../metrics');
+
+// Limit concurrent enrichment jobs to prevent overwhelming DB/API
+// Tune this value based on DB pool size and Claude rate limits
+const ENRICHMENT_CONCURRENCY = parseInt(process.env.ENRICHMENT_CONCURRENCY || '10', 10);
+const enrichmentSemaphore = new Semaphore(ENRICHMENT_CONCURRENCY);
 
 const prisma = new PrismaClient();
 
 async function enrichBookmark(bookmarkId) {
+  // Track active jobs
+  enrichmentActive.inc();
+
+  // Acquire semaphore slot to limit concurrency
+  await enrichmentSemaphore.acquire();
+
   try {
+    logger.debug(`Enrichment started (concurrency: ${ENRICHMENT_CONCURRENCY})`, { bookmarkId });
+
     // 1. Fetch the bookmark from DB
     const bookmark = await prisma.bookmark.findUnique({
       where: { id: bookmarkId },
@@ -15,11 +31,11 @@ async function enrichBookmark(bookmarkId) {
     });
 
     if (!bookmark) {
-      console.error(`Bookmark ${bookmarkId} not found`);
+      logger.error(`Bookmark ${bookmarkId} not found`, { bookmarkId });
       return;
     }
 
-    console.log(`Enriching bookmark ${bookmarkId}: ${bookmark.url}`);
+    logger.info(`Starting enrichment`, { bookmarkId, url: bookmark.url });
 
     // 2. Fetch metadata (title, description, favicon)
     const metadata = await fetchMetadata(bookmark.url);
@@ -38,13 +54,13 @@ async function enrichBookmark(bookmarkId) {
           metadata.description || bookmark.description
         );
       } catch (summaryError) {
-        console.error(`Summary generation failed for ${bookmarkId}:`, summaryError.message);
+        logger.warn(`Summary generation failed, continuing without AI`, { bookmarkId, error: summaryError.message });
         // Continue without summary - it's optional enrichment
       }
     } else if (process.env.CLAUDE_API_KEY && !hasValidApiKey) {
-      console.log(`Skipping AI summary for ${bookmarkId} - CLAUDE_API_KEY not set to a real key (using placeholder)`);
+      logger.info(`Skipping AI summary - CLAUDE_API_KEY not set to a real key`, { bookmarkId });
     } else if (!process.env.CLAUDE_API_KEY) {
-      console.log(`Skipping AI summary for ${bookmarkId} - CLAUDE_API_KEY not configured`);
+      logger.info(`Skipping AI summary - CLAUDE_API_KEY not configured`, { bookmarkId });
     }
 
     // 4. Update the bookmark with enriched data
@@ -59,10 +75,15 @@ async function enrichBookmark(bookmarkId) {
       }
     });
 
-    console.log(`Successfully enriched bookmark ${bookmarkId}`);
+    logger.info(`Successfully enriched bookmark`, { bookmarkId });
+    enrichmentSuccessTotal.inc();
   } catch (error) {
-    console.error(`Enrichment failed for bookmark ${bookmarkId}:`, error);
+    logger.error(`Enrichment failed`, { bookmarkId, error: error.message, stack: error.stack });
+    enrichmentFailureTotal.inc();
     throw error;
+  } finally {
+    enrichmentSemaphore.release();
+    enrichmentActive.dec();
   }
 }
 

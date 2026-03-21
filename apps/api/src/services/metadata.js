@@ -1,5 +1,8 @@
 const cheerio = require('cheerio');
 const { URL } = require('url');
+const dns = require('dns');
+const ipaddr = require('ipaddr.js');
+const logger = require('../logger');
 
 // AbortController for timeout since native fetch doesn't have timeout option
 function fetchWithTimeout(url, options = {}, timeout = 10000) {
@@ -23,10 +26,53 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
   });
 }
 
+/**
+ * Check if a hostname/IP resolves to a private/internal address
+ * Prevents SSRF attacks targeting localhost, private networks, or link-local addresses
+ */
+async function isPrivateIp(hostname) {
+  // First check if hostname itself is a private IP
+  try {
+    const addr = ipaddr.parse(hostname);
+    if (addr.range() === 'private' || addr.range() === 'loopback' || addr.range() === 'link-local') {
+      return true;
+    }
+    return false;
+  } catch {
+    // Not an IP, need to do DNS resolution
+  }
+
+  // Resolve hostname to IP addresses
+  try {
+    const addresses = await dns.promises.lookup(hostname, { family: 0 }); // 0 = both IPv4 and IPv6
+    const addr = ipaddr.parse(addresses.address);
+    if (addr.range() === 'private' || addr.range() === 'loopback' || addr.range() === 'link-local') {
+      return true;
+    }
+    return false;
+  } catch (error) {
+    // DNS resolution failed — treat as suspect but not necessarily private
+    logger.warn('DNS resolution failed for SSRF check', { hostname, error: error.message });
+    return false;
+  }
+}
+
 async function fetchMetadata(url) {
   try {
     // Validate URL
     const parsedUrl = new URL(url);
+
+    // SSRF Protection: block private IP ranges and localhost
+    // Check hostname directly for loopback names
+    const blockedHostnames = ['localhost', '127.0.0.1', '[::1]', '0.0.0.0'];
+    if (blockedHostnames.includes(parsedUrl.hostname)) {
+      throw new Error('URL points to blocked host');
+    }
+
+    // Check if hostname resolves to a private IP
+    if (await isPrivateIp(parsedUrl.hostname)) {
+      throw new Error('URL points to private IP address (SSRF protection)');
+    }
 
     // Fetch the page with browser-like headers to avoid being blocked
     const response = await fetchWithTimeout(url, {
@@ -87,7 +133,7 @@ async function fetchMetadata(url) {
       faviconUrl: faviconUrl || null
     };
   } catch (error) {
-    console.error(`Metadata fetch error for ${url}:`, error.message);
+    logger.warn(`Metadata fetch failed`, { url, error: error.message });
     return {
       title: null,
       description: null,

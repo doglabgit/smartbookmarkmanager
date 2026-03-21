@@ -1,130 +1,140 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const asyncHandler = require('../utils/asyncHandler');
+const { createRateLimiter } = require('../middleware/rateLimiter');
+const { validate } = require('../middleware/validate');
+const { bookmarkCreateSchema, bookmarkUpdateSchema } = require('../../validation/schemas');
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
+// Rate limit bookmark creation: 30 per minute per user ID
+// Disable in test environment to avoid interfering with tests
+const createBookmarkRateLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter({
+      windowMs: 60 * 1000,
+      max: 30,
+      keyGenerator: (req) => req.user?.id || 'anonymous',
+      message: 'Too many bookmark creations. Please slow down.'
+    });
+
 // Helper to trigger background enrichment
+const logger = require('../logger');
+
 async function triggerEnrichment(bookmarkId) {
   try {
     // Import dynamically to avoid circular dependencies
     const { enrichBookmark } = require('../services/enrichment');
     await enrichBookmark(bookmarkId);
   } catch (error) {
-    console.error(`Background enrichment failed for bookmark ${bookmarkId}:`, error);
+    logger.error(`Background enrichment failed for bookmark ${bookmarkId}`, { error, bookmarkId });
   }
 }
 
 // GET /api/bookmarks - List all bookmarks for the user
-router.get('/', async (req, res) => {
-  try {
-    const { page = 1, limit = 20, search, tag } = req.query;
-
-    const where = {
-      userId: req.user.id,
-      ...(search && {
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-          { url: { contains: search, mode: 'insensitive' } }
-        ]
-      }),
-      ...(tag && {
-        tags: {
-          some: { name: tag }
-        }
-      })
-    };
-
-    const [bookmarks, total] = await Promise.all([
-      prisma.bookmark.findMany({
-        where,
-        include: {
-          tags: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        },
-        skip: (page - 1) * limit,
-        take: Number(limit)
-      }),
-      prisma.bookmark.count({ where })
-    ]);
-
-    res.status(200).json({
-      data: {
-        bookmarks,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Get bookmarks error:', error);
-    res.status(500).json({ error: 'Server error' });
+router.get('/', asyncHandler(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  let limit = parseInt(req.query.limit, 10) || 20;
+  const MAX_LIMIT = 100;
+  if (limit > MAX_LIMIT) {
+    limit = MAX_LIMIT;
   }
-});
+  const { search, tag } = req.query;
 
-// GET /api/bookmarks/:id - Get a single bookmark
-router.get('/:id', async (req, res) => {
-  try {
-    const bookmark = await prisma.bookmark.findFirst({
-      where: {
-        id: Number(req.params.id),
-        userId: req.user.id
-      },
+  const where = {
+    userId: req.user.id,
+    ...(search && {
+      OR: [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { url: { contains: search, mode: 'insensitive' } }
+      ]
+    }),
+    ...(tag && {
+      tags: {
+        some: { name: tag }
+      }
+    })
+  };
+
+  const [bookmarks, total] = await Promise.all([
+    prisma.bookmark.findMany({
+      where,
       include: {
         tags: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      skip: (page - 1) * limit,
+      take: Number(limit)
+    }),
+    prisma.bookmark.count({ where })
+  ]);
+
+  res.status(200).json({
+    data: {
+      bookmarks,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / limit)
       }
-    });
-
-    if (!bookmark) {
-      return res.status(404).json({ error: 'Bookmark not found' });
     }
+  });
+}));
 
-    res.status(200).json({ data: { bookmark } });
-  } catch (error) {
-    console.error('Get bookmark error:', error);
-    res.status(500).json({ error: 'Server error' });
+// GET /api/bookmarks/:id - Get a single bookmark
+router.get('/:id', asyncHandler(async (req, res) => {
+  const bookmark = await prisma.bookmark.findFirst({
+    where: {
+      id: Number(req.params.id),
+      userId: req.user.id
+    },
+    include: {
+      tags: true
+    }
+  });
+
+  if (!bookmark) {
+    return res.status(404).json({ error: 'Bookmark not found' });
   }
-});
+
+  res.status(200).json({ data: { bookmark } });
+}));
 
 // POST /api/bookmarks - Create a new bookmark
-router.post('/', async (req, res) => {
-  try {
-    const { url, title, description, faviconUrl, tags: tagNames } = req.body;
-
-    if (!url) {
+router.post('/',
+  createBookmarkRateLimiter,
+  // Pre-validation: check required fields
+  (req, res, next) => {
+    if (!req.body.url) {
       return res.status(400).json({ error: 'URL is required' });
     }
+    next();
+  },
+  validate(bookmarkCreateSchema),
+  asyncHandler(async (req, res) => {
+    const { url, title, description, faviconUrl, tags: tagNames } = req.body;
 
-    // Validate URL format
-    try {
-      new URL(url);
-    } catch (err) {
-      return res.status(400).json({ error: 'Invalid URL format' });
-    }
-
-    // Create or get tags
+    // Create or get tags (tagNames already normalized by Zod schema: lowercase, trimmed)
     let tags = [];
     if (tagNames && Array.isArray(tagNames)) {
       tags = await Promise.all(
         tagNames.map(async (name) => {
-          const normalizedName = name.toLowerCase().trim();
           return prisma.tag.upsert({
             where: {
               userId_name: {
                 userId: req.user.id,
-                name: normalizedName
+                name: name
               }
             },
             update: {},
             create: {
               userId: req.user.id,
-              name: normalizedName
+              name: name
             }
           });
         })
@@ -157,113 +167,100 @@ router.post('/', async (req, res) => {
 
     // Trigger background enrichment (fire and forget)
     process.nextTick(() => triggerEnrichment(bookmark.id));
-  } catch (error) {
-    console.error('Create bookmark error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+  })
+);
 
 // PATCH /api/bookmarks/:id - Update a bookmark
-router.patch('/:id', async (req, res) => {
-  try {
-    const { title, description, faviconUrl, tags: tagNames } = req.body;
+router.patch('/:id', validate(bookmarkUpdateSchema), asyncHandler(async (req, res) => {
+  const { title, description, faviconUrl, tags: tagNames } = req.body;
 
-    // Check bookmark exists and belongs to user
-    const existing = await prisma.bookmark.findFirst({
-      where: {
-        id: Number(req.params.id),
-        userId: req.user.id
-      }
-    });
-
-    if (!existing) {
-      return res.status(404).json({ error: 'Bookmark not found' });
+  // Check bookmark exists and belongs to user
+  const existing = await prisma.bookmark.findFirst({
+    where: {
+      id: Number(req.params.id),
+      userId: req.user.id
     }
+  });
 
-    // Update tags if provided
-    let tagConnections = [];
-    if (tagNames && Array.isArray(tagNames)) {
-      const tags = await Promise.all(
-        tagNames.map(async (name) => {
-          const normalizedName = name.toLowerCase().trim();
-          return prisma.tag.upsert({
-            where: {
-              userId_name: {
-                userId: req.user.id,
-                name: normalizedName
-              }
-            },
-            update: {},
-            create: {
-              userId: req.user.id,
-              name: normalizedName
-            }
-          });
-        })
-      );
-      tagConnections = tags.map(tag => ({ id: tag.id }));
-    }
-
-    // Build update data
-    const updateData = {};
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (faviconUrl !== undefined) updateData.faviconUrl = faviconUrl;
-    if (tagConnections.length > 0) {
-      updateData.tags = {
-        set: [],
-        connect: tagConnections
-      };
-    }
-
-    const bookmark = await prisma.bookmark.update({
-      where: { id: Number(req.params.id) },
-      data: updateData,
-      include: {
-        tags: true
-      }
-    });
-
-    res.status(200).json({
-      data: {
-        bookmark,
-        message: 'Bookmark updated'
-      }
-    });
-  } catch (error) {
-    console.error('Update bookmark error:', error);
-    res.status(500).json({ error: 'Server error' });
+  if (!existing) {
+    return res.status(404).json({ error: 'Bookmark not found' });
   }
-});
+
+  // Update tags if provided (tagNames already normalized by Zod)
+  let tagConnections = [];
+  if (tagNames && Array.isArray(tagNames)) {
+    const tags = await Promise.all(
+      tagNames.map(async (name) => {
+        return prisma.tag.upsert({
+          where: {
+            userId_name: {
+              userId: req.user.id,
+              name: name
+            }
+          },
+          update: {},
+          create: {
+            userId: req.user.id,
+            name: name
+          }
+        });
+      })
+    );
+    tagConnections = tags.map(tag => ({ id: tag.id }));
+  }
+
+  // Build update data
+  const updateData = {};
+  if (title !== undefined) updateData.title = title;
+  if (description !== undefined) updateData.description = description;
+  if (faviconUrl !== undefined) updateData.faviconUrl = faviconUrl;
+  if (tagConnections.length > 0) {
+    updateData.tags = {
+      set: [],
+      connect: tagConnections
+    };
+  }
+
+  const bookmark = await prisma.bookmark.update({
+    where: { id: Number(req.params.id) },
+    data: updateData,
+    include: {
+      tags: true
+    }
+  });
+
+  res.status(200).json({
+    data: {
+      bookmark,
+      message: 'Bookmark updated'
+    }
+  });
+}));
 
 // DELETE /api/bookmarks/:id - Delete a bookmark
-router.delete('/:id', async (req, res) => {
-  try {
-    // Check bookmark exists and belongs to user
-    const existing = await prisma.bookmark.findFirst({
-      where: {
-        id: Number(req.params.id),
-        userId: req.user.id
-      }
-    });
-
-    if (!existing) {
-      return res.status(404).json({ error: 'Bookmark not found' });
+router.delete('/:id', asyncHandler(async (req, res) => {
+  // Check bookmark exists and belongs to user
+  const existing = await prisma.bookmark.findFirst({
+    where: {
+      id: Number(req.params.id),
+      userId: req.user.id
     }
+  });
 
-    await prisma.bookmark.delete({
-      where: { id: Number(req.params.id) }
-    });
-
-    res.status(200).json({
-      data: {
-        message: 'Bookmark deleted'
-      }
-    });
-  } catch (error) {
-    console.error('Delete bookmark error:', error);
-    res.status(500).json({ error: 'Server error' });
+  if (!existing) {
+    return res.status(404).json({ error: 'Bookmark not found' });
   }
-});
+
+  await prisma.bookmark.delete({
+    where: { id: Number(req.params.id) }
+  });
+
+  res.status(200).json({
+    data: {
+      message: 'Bookmark deleted'
+    }
+  });
+}));
 
 module.exports = router;
+module.exports.triggerEnrichment = triggerEnrichment;

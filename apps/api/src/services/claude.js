@@ -1,3 +1,6 @@
+const logger = require('../logger');
+const { claudeApiCallsTotal } = require('../metrics');
+
 // Native fetch with AbortController for timeout
 function fetchWithTimeout(url, options = {}, timeout = 10000) {
   return new Promise((resolve, reject) => {
@@ -21,6 +24,9 @@ async function generateSummary(url, title, description) {
   if (!apiKey) {
     throw new Error('CLAUDE_API_KEY not configured');
   }
+
+  // Track Claude API call attempt
+  claudeApiCallsTotal.inc();
 
   const content = `
 URL: ${url}
@@ -55,7 +61,7 @@ If the information is insufficient, respond with "Insufficient information to ge
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Claude API error:', errorData);
+      logger.error('Claude API error', { url, status: response.status, errorData });
       throw new Error(`Claude API error: ${response.statusText}`);
     }
 
@@ -67,7 +73,7 @@ If the information is insufficient, respond with "Insufficient information to ge
 
     return 'No summary generated';
   } catch (error) {
-    console.error(`Claude summary error for ${url}:`, error);
+    logger.error(`Claude summary error`, { url, error: error.message });
     throw error;
   }
 }
