@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-
-=======
 # Render Blueprint Manifest
 # See: https://render.com/docs/blueprint-spec
 
@@ -10,7 +7,6 @@ services:
     name: smartbookmark-db
     plan: free
     version: "15"
-    # No envVars needed - connection provided automatically
 
   # Backend API
   - type: web
@@ -50,4 +46,3 @@ services:
         value: "https://smartbookmark-api.onrender.com"
     healthCheckPath: /
     autoDeploy: true
->>>>>>> 99aee4a (feat: add Render.com deployment blueprint)
