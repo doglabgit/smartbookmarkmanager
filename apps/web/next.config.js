@@ -5,10 +5,11 @@ const nextConfig = {
     domains: [],
   },
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3000/api/:path*', // Proxy to Express backend
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

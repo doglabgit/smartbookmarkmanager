@@ -1,0 +1,24 @@
+steps:
+  # Build and push the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/smartbookmark-api', '.']
+    dir: 'apps/api'
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/smartbookmark-api']
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'smartbookmark-api'
+      - '--image=gcr.io/$PROJECT_ID/smartbookmark-api'
+      - '--region=us-west1'
+      - '--allow-unauthenticated'
+      - '--port=3000'
+      - '--add-cloudsql-instances=project-1ee8c9e2-932b-4b9b-8ce:us-west1:smartbookmark-db'
+      - '--set-env-vars= DATABASE_URL=postgresql://postgres:avXE83BzCdqgHGuCrP4RGUe4w5Q3O3getWDvfhTIOHc@/smartbookmark?host=/cloudsql/project-1ee8c9e2-932b-4b9b-8ce:us-west1:smartbookmark-db,JWT_SECRET=0G5KrWPOFzq5kWB6UeAZV0J0Y7n2Xpe7tmS7HlME3rtZgF6Ikpj96rK0zWcEEXgM2I7HvXH8aJnXRDu9DaakA,ALLOWED_ORIGINS=*,NODE_ENV=production,ENRICHMENT_CONCURRENCY=10'
+      - '--verbosity=error'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-west1'
+options:
+  logging: CLOUD_LOGGING_ONLY

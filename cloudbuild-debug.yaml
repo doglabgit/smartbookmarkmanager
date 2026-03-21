@@ -1,0 +1,10 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-west1-docker.pkg.dev/project-1ee8c9e2-932b-4b9b-8ce/smartbookmark-repo/smartbookmark-api:latest', '.']
+    dir: 'apps/api'
+    timeout: '20m'
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-west1-docker.pkg.dev/project-1ee8c9e2-932b-4b9b-8ce/smartbookmark-repo/smartbookmark-api:latest']
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
