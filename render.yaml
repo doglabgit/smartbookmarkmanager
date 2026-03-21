@@ -1,1 +1,53 @@
+<<<<<<< HEAD
 
+=======
+# Render Blueprint Manifest
+# See: https://render.com/docs/blueprint-spec
+
+services:
+  # PostgreSQL Database
+  - type: postgres
+    name: smartbookmark-db
+    plan: free
+    version: "15"
+    # No envVars needed - connection provided automatically
+
+  # Backend API
+  - type: web
+    name: smartbookmark-api
+    plan: free
+    env: docker
+    dockerfilePath: apps/api/Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartbookmark-db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: ENRICHMENT_CONCURRENCY
+        value: "10"
+    healthCheckPath: /healthz
+    autoDeploy: true
+
+  # Frontend
+  - type: web
+    name: smartbookmark-frontend
+    plan: free
+    env: docker
+    dockerfilePath: apps/web/Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: NEXT_PUBLIC_API_URL
+        value: "https://smartbookmark-api.onrender.com"
+    healthCheckPath: /
+    autoDeploy: true
+>>>>>>> 99aee4a (feat: add Render.com deployment blueprint)
