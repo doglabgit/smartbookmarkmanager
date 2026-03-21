@@ -72,17 +72,17 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Login</h1>
+      <h1 className="text-[2.5rem] font-bold mb-6">Login</h1>
 
       {error && (
-        <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded mb-4">
+        <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md mb-4">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
+          <label htmlFor="email" className="block text-sm font-medium mb-2">
             Email
           </label>
           <input
@@ -90,13 +90,13 @@ export default function LoginPage() {
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-4 border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition"
             required
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1">
+          <label htmlFor="password" className="block text-sm font-medium mb-2">
             Password
           </label>
           <input
@@ -104,7 +104,7 @@ export default function LoginPage() {
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-4 border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition"
             required
           />
         </div>
@@ -112,15 +112,15 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 disabled:opacity-50"
+          className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-md hover:bg-primary/90 disabled:opacity-50 transition font-medium"
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
 
-      <p className="mt-4 text-sm text-muted-foreground">
+      <p className="mt-6 text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
-        <a href="/register" className="text-primary hover:underline">
+        <a href="/register" className="text-primary hover:underline font-medium">
           Register
         </a>
       </p>

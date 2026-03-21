@@ -236,18 +236,18 @@ export default function BookmarksPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">My Bookmarks</h1>
-        <div className="flex gap-2">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-[2.5rem] font-bold">My Bookmarks</h1>
+        <div className="flex gap-3">
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+            className="bg-primary text-primary-foreground py-3 px-6 rounded-md hover:bg-primary/90 transition font-medium"
           >
             {showAddForm ? 'Cancel' : 'Add Bookmark'}
           </button>
           <button
             onClick={handleLogout}
-            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80"
+            className="bg-secondary text-secondary-foreground py-3 px-6 rounded-md hover:bg-secondary/80 transition font-medium"
           >
             Logout
           </button>
@@ -255,58 +255,58 @@ export default function BookmarksPage() {
       </div>
 
       {showAddForm && (
-        <form onSubmit={handleSubmit} className="mb-8 p-4 border rounded-lg space-y-4 bg-card">
+        <form onSubmit={handleSubmit} className="mb-8 p-6 border rounded-lg bg-card space-y-4">
           <h2 className="text-xl font-semibold">
             {editingBookmark ? 'Edit Bookmark' : 'Add New Bookmark'}
           </h2>
 
           {error && (
-            <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+            <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">URL *</label>
+            <label className="block text-sm font-medium mb-2">URL *</label>
             <input
               type="url"
               value={formData.url}
               onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-4 border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition"
               placeholder="https://example.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
+            <label className="block text-sm font-medium mb-2">Title</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-4 border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition"
               placeholder="Page title"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
+            <label className="block text-sm font-medium mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-4 border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition"
               rows={2}
               placeholder="Brief description"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Tags (comma-separated)</label>
+            <label className="block text-sm font-medium mb-2">Tags (comma-separated)</label>
             <input
               type="text"
               value={formData.tags}
               onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-4 border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition"
               placeholder="design, tools, productivity"
             />
           </div>
@@ -314,7 +314,7 @@ export default function BookmarksPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
+            className="bg-primary text-primary-foreground py-3 px-6 rounded-md hover:bg-primary/90 disabled:opacity-50 transition font-medium"
           >
             {loading ? 'Saving...' : editingBookmark ? 'Update' : 'Save'}
           </button>
@@ -322,18 +322,18 @@ export default function BookmarksPage() {
       )}
 
       {/* Filters */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex gap-4 mb-8">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search bookmarks..."
-          className="flex-1 p-2 border rounded-md"
+          className="flex-1 p-4 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-primary outline-none transition"
         />
         <select
           value={selectedTag}
           onChange={(e) => setSelectedTag(e.target.value)}
-          className="p-2 border rounded-md"
+          className="p-4 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-primary outline-none transition"
         >
           <option value="">All Tags</option>
           {allTags.map(tag => (
@@ -353,10 +353,10 @@ export default function BookmarksPage() {
       ) : (
         <div className="space-y-4">
           {bookmarks.map(bookmark => (
-            <div key={bookmark.id} className="border rounded-lg p-4 bg-card">
+            <div key={bookmark.id} className="border rounded-lg p-6 bg-card">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center gap-3 mb-2">
                     {bookmark.faviconUrl ? (
                       <img
                         src={bookmark.faviconUrl}
@@ -367,34 +367,34 @@ export default function BookmarksPage() {
                         }}
                       />
                     ) : (
-                      <div className="w-4 h-4 flex-shrink-0 bg-muted rounded" />
+                      <div className="w-4 h-4 flex-shrink-0 bg-muted rounded-full" />
                     )}
                     <a
                       href={bookmark.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-semibold text-primary hover:underline truncate"
+                      className="font-semibold text-primary hover:underline truncate text-lg"
                     >
                       {bookmark.title || bookmark.url}
                     </a>
                   </div>
 
                   {bookmark.description && (
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-3">
                       {bookmark.description}
                     </p>
                   )}
 
                   {bookmark.aiSummary && (
-                    <div className="mb-2">
-                      <p className="text-xs font-medium text-blue-600 mb-1">AI Summary</p>
-                      <p className="text-sm bg-blue-50 p-2 rounded border border-blue-200">
+                    <div className="mb-3">
+                      <p className="text-xs font-medium text-primary mb-1">AI Summary</p>
+                      <p className="text-sm bg-info/10 p-3 rounded border border-info">
                         {bookmark.aiSummary}
                       </p>
                     </div>
                   )}
 
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap mb-2">
                     {bookmark.tags.map(tag => (
                       <span
                         key={tag.id}
@@ -405,7 +405,7 @@ export default function BookmarksPage() {
                     ))}
                   </div>
 
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground font-mono">
                     Added {new Date(bookmark.createdAt).toLocaleDateString()}
                     {bookmark.enrichedAt && (
                       <span> • Enriched {new Date(bookmark.enrichedAt).toLocaleDateString()}</span>
@@ -416,13 +416,13 @@ export default function BookmarksPage() {
                 <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={() => handleEdit(bookmark)}
-                    className="text-sm text-primary hover:underline"
+                    className="text-sm text-primary hover:underline font-medium"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(bookmark.id)}
-                    className="text-sm text-red-600 hover:underline"
+                    className="text-sm text-destructive hover:underline font-medium"
                   >
                     Delete
                   </button>
