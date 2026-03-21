@@ -119,9 +119,10 @@ A full-stack web application for managing bookmarks with automatic metadata enri
 
 ### Bookmarks (authenticated)
 
-- `GET /api/bookmarks` - List bookmarks (filterable with `?search=query&tag=tagname`)
+- `GET /api/bookmarks` - List bookmarks (filterable with `?search=query&tag=tagname`). **Rate limited: 300 req/min per user**
+- `GET /api/bookmarks/tags` - Get distinct tag names (for filter dropdown). **Rate limited: 300 req/min per user**
 - `GET /api/bookmarks/:id` - Get single bookmark
-- `POST /api/bookmarks` - Create bookmark
+- `POST /api/bookmarks` - Create bookmark. **Rate limited: 30 req/min per user**
 - `PATCH /api/bookmarks/:id` - Update bookmark
 - `DELETE /api/bookmarks/:id` - Delete bookmark
 
