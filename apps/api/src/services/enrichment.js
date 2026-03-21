@@ -10,6 +10,22 @@ const prisma = require('../database');
 const ENRICHMENT_CONCURRENCY = parseInt(process.env.ENRICHMENT_CONCURRENCY || '10', 10);
 const enrichmentSemaphore = new Semaphore(ENRICHMENT_CONCURRENCY);
 
+// Graceful shutdown: release all semaphore slots on exit to prevent Jest hanging
+if (process.env.NODE_ENV !== 'test') {
+  process.on('SIGTERM', () => {
+    logger.info('Shutting down: releasing enrichment semaphore');
+    enrichmentSemaphore.reset();
+    prisma.$disconnect();
+    process.exit(0);
+  });
+  process.on('SIGINT', () => {
+    logger.info('Shutting down: releasing enrichment semaphore');
+    enrichmentSemaphore.reset();
+    prisma.$disconnect();
+    process.exit(0);
+  });
+}
+
 async function enrichBookmark(bookmarkId) {
   // Track active jobs
   enrichmentActive.inc();

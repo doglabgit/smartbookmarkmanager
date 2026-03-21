@@ -31,6 +31,9 @@ model Bookmark {
   enrichedAt  DateTime?
   user        User     @relation(fields: [userId], references: [id])
   tags        Tag[]
+
+  @@index([userId, createdAt], name: "bookmark_user_created_idx")
+  @@index([userId, enrichedAt], name: "bookmark_user_enriched_idx")
 }
 
 model Tag {
@@ -43,4 +46,5 @@ model Tag {
 
   @@unique([userId, name])
   @@index([userId])
+  @@index([name], name: "tag_name_idx")
 }

@@ -12,7 +12,7 @@
  */
 const logger = require('../logger');
 
-module.exports = function errorMiddleware(err, req, res, next) {
+module.exports = function errorMiddleware(err, req, res, _next) {
   // Log the error with structured logger
   const logMeta = {
     message: err.message,

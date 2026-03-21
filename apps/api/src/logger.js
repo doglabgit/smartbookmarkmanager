@@ -20,8 +20,8 @@ const level = process.env.NODE_ENV === 'production' ? 'info' : 'debug';
 const addRequestContext = winston.format((info) => {
   const requestId = getRequestId();
   const userId = getUserId();
-  if (requestId) info.requestId = requestId;
-  if (userId) info.userId = userId;
+  if (requestId) {info.requestId = requestId;}
+  if (userId) {info.userId = userId;}
   return info;
 });
 
@@ -42,9 +42,9 @@ const logger = winston.createLogger({
       format: process.env.NODE_ENV === 'production'
         ? winston.format.json()
         : winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-          )
+          winston.format.colorize(),
+          winston.format.simple()
+        )
     }),
     // Daily rotate file transport
     new winston.transports.DailyRotateFile({

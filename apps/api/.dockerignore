@@ -5,7 +5,6 @@ logs
 .gitignore
 .env*
 !.env.example
-prisma/migrations
 coverage
 tests
 jest.config.js

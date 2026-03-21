@@ -133,7 +133,7 @@ async function fetchMetadata(url) {
       faviconUrl: faviconUrl || null
     };
   } catch (error) {
-    logger.warn(`Metadata fetch failed`, { url, error: error.message });
+    logger.warn('Metadata fetch failed', { url, error: error.message });
     return {
       title: null,
       description: null,

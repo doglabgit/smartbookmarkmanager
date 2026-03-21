@@ -73,7 +73,7 @@ If the information is insufficient, respond with "Insufficient information to ge
 
     return 'No summary generated';
   } catch (error) {
-    logger.error(`Claude summary error`, { url, error: error.message });
+    logger.error('Claude summary error', { url, error: error.message });
     throw error;
   }
 }
