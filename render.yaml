@@ -3,7 +3,7 @@
 
 databases:
   - name: smartbookmark-db
-    type: postgresql
+    type: postgres
     plan: free
     version: "15"
 
