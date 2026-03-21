@@ -66,7 +66,12 @@ A full-stack web application for managing bookmarks with automatic metadata enri
    ```bash
    cd apps/api
    npx prisma generate
+
+   # For development: use migrate dev (interactive, creates new migration)
    npx prisma migrate dev --name init
+
+   # For production: use migrate deploy (runs existing migrations only, no prompt)
+   # npx prisma migrate deploy
    ```
 
 4. **Configure environment variables**
@@ -173,15 +178,17 @@ cd apps/api && npx prisma migrate reset
 **Railway (Backend)**
 
 - `DATABASE_URL` (provided by Railway Postgres plugin)
-- `JWT_SECRET` (set a strong random secret, **required**)
+- `JWT_SECRET` (set a strong random secret, **required**, at least 32 characters)
 - `CLAUDE_API_KEY` (your Anthropic API key, **optional** — without it, AI summaries are disabled)
+- `ALLOWED_ORIGINS` (comma-separated list of frontend URLs that are allowed to make authenticated requests; **do not use `*`** when credentials (cookies) are enabled; e.g., `https://your-app.vercel.app,https://your-app.netlify.app`)
 
 ### Important Production Considerations
 
 - Set `NODE_ENV=production` on the backend
-- Update `JWT_SECRET` to a strong random value
-- The backend's `Access-Control-Allow-Origin: *` is acceptable because we use httpOnly cookies + same-site restrictions
+- Update `JWT_SECRET` to a strong random value (at least 32 chars)
+- Set `ALLOWED_ORIGINS` to your frontend URL(s). Do **not** use `*` when credentials (cookies) are enabled.
 - Railway's free tier sleeps after inactivity - handle cold starts gracefully on the frontend with loading states
+- **After initial deploy**, run `npx prisma migrate deploy` to apply database migrations (connect via API service shell in Render dashboard)
 
 ## Database Schema
 
