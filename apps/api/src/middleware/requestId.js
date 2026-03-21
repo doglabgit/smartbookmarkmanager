@@ -8,7 +8,7 @@ const requestContext = cls.createNamespace('request');
  * Middleware to generate a unique request ID and store in CLS.
  * Also captures userId from auth middleware if available.
  */
-module.exports = function requestIdMiddleware(req, res, next) {
+module.exports = function requestIdMiddleware(req, _res, next) {
   const requestId = req.headers['x-request-id'] || randomUUID();
   req.requestId = requestId;
 

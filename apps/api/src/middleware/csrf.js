@@ -44,7 +44,7 @@ function clearCsrfCookie(res) {
  * Skips validation on safe methods (GET, HEAD, OPTIONS)
  * Also skips in test environment to simplify testing
  */
-function csrfProtect(req, res, next) {
+function csrfProtect(req, _res, next) {
   // Skip in test environment
   if (process.env.NODE_ENV === 'test') {
     return next();

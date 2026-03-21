@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const { setUserId } = require('./requestId');
 const { AuthError } = require('../errors');
 
-function authMiddleware(req, res, next) {
+function authMiddleware(req, _res, next) {
   // Get token from cookie or Authorization header
   const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
 

@@ -71,7 +71,7 @@ function trackClaudeCall() {
 }
 
 // Export metrics endpoint handler
-async function metricsEndpoint(req, res) {
+async function metricsEndpoint(_req, res) {
   try {
     const metrics = await register.metrics();
     res.set('Content-Type', register.contentType);

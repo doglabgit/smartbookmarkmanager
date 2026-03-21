@@ -19,7 +19,7 @@ const authRateLimiter = createRateLimiter({
 
 // Disable rate limiting in test environment to avoid false positives
 const authRateLimiterMiddleware = process.env.NODE_ENV === 'test'
-  ? (req, res, next) => next()
+  ? (_req, _res, next) => next()
   : authRateLimiter;
 
 // Apply rate limiter to all auth routes
@@ -168,7 +168,7 @@ router.get('/me', authMiddleware, asyncHandler(async (req, res) => {
 }));
 
 // POST /api/auth/logout
-router.post('/logout', asyncHandler(async (req, res) => {
+router.post('/logout', asyncHandler(async (_req, res) => {
   res.clearCookie('accessToken');
   clearCsrfCookie(res); // Also clear CSRF token
   res.status(200).json({ data: { message: 'Logged out' } });

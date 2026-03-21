@@ -10,24 +10,24 @@ const router = express.Router();
 // Rate limit bookmark creation: 30 per minute per user ID
 // Disable in test environment to avoid interfering with tests
 const createBookmarkRateLimiter = process.env.NODE_ENV === 'test'
-  ? (req, res, next) => next()
+  ? (_req, _res, next) => next()
   : createRateLimiter({
-      windowMs: 60 * 1000,
-      max: 30,
-      keyGenerator: (req) => req.user?.id || 'anonymous',
-      message: 'Too many bookmark creations. Please slow down.'
-    });
+    windowMs: 60 * 1000,
+    max: 30,
+    keyGenerator: (req) => req.user?.id || 'anonymous',
+    message: 'Too many bookmark creations. Please slow down.'
+  });
 
 // Rate limit bookmark reads: 300 per minute per user ID (generous, but prevents abuse)
 // Disable in test environment
 const readBookmarksRateLimiter = process.env.NODE_ENV === 'test'
-  ? (req, res, next) => next()
+  ? (_req, _res, next) => next()
   : createRateLimiter({
-      windowMs: 60 * 1000,
-      max: 300,
-      keyGenerator: (req) => req.user?.id || 'anonymous',
-      message: 'Too many requests. Please slow down.'
-    });
+    windowMs: 60 * 1000,
+    max: 300,
+    keyGenerator: (req) => req.user?.id || 'anonymous',
+    message: 'Too many requests. Please slow down.'
+  });
 
 // Helper to trigger background enrichment
 const logger = require('../logger');
@@ -232,9 +232,9 @@ router.patch('/:id', validate(bookmarkUpdateSchema), asyncHandler(async (req, re
 
   // Build update data
   const updateData = {};
-  if (title !== undefined) updateData.title = title;
-  if (description !== undefined) updateData.description = description;
-  if (faviconUrl !== undefined) updateData.faviconUrl = faviconUrl;
+  if (title !== undefined) {updateData.title = title;}
+  if (description !== undefined) {updateData.description = description;}
+  if (faviconUrl !== undefined) {updateData.faviconUrl = faviconUrl;}
   if (tagConnections.length > 0) {
     updateData.tags = {
       set: [],

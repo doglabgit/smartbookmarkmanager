@@ -1,0 +1,8 @@
+node_modules/
+build/
+coverage/
+dist/
+*.test.js
+*.spec.js
+__tests__/
+secrets/

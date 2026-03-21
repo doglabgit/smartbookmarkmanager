@@ -1,5 +1,5 @@
 const { fetchMetadata } = require('./metadata');
-const { generateSummary, trackClaudeCall } = require('./claude');
+const { generateSummary } = require('./claude');
 const logger = require('../logger');
 const { Sema: Semaphore } = require('async-sema');
 const { enrichmentActive, enrichmentSuccessTotal, enrichmentFailureTotal } = require('../metrics');
@@ -33,7 +33,7 @@ async function enrichBookmark(bookmarkId) {
       return;
     }
 
-    logger.info(`Starting enrichment`, { bookmarkId, url: bookmark.url });
+    logger.info('Starting enrichment', { bookmarkId, url: bookmark.url });
 
     // 2. Fetch metadata (title, description, favicon)
     const metadata = await fetchMetadata(bookmark.url);
@@ -52,13 +52,13 @@ async function enrichBookmark(bookmarkId) {
           metadata.description || bookmark.description
         );
       } catch (summaryError) {
-        logger.warn(`Summary generation failed, continuing without AI`, { bookmarkId, error: summaryError.message });
+        logger.warn('Summary generation failed, continuing without AI', { bookmarkId, error: summaryError.message });
         // Continue without summary - it's optional enrichment
       }
     } else if (process.env.CLAUDE_API_KEY && !hasValidApiKey) {
-      logger.info(`Skipping AI summary - CLAUDE_API_KEY not set to a real key`, { bookmarkId });
+      logger.info('Skipping AI summary - CLAUDE_API_KEY not set to a real key', { bookmarkId });
     } else if (!process.env.CLAUDE_API_KEY) {
-      logger.info(`Skipping AI summary - CLAUDE_API_KEY not configured`, { bookmarkId });
+      logger.info('Skipping AI summary - CLAUDE_API_KEY not configured', { bookmarkId });
     }
 
     // 4. Update the bookmark with enriched data
@@ -73,10 +73,10 @@ async function enrichBookmark(bookmarkId) {
       }
     });
 
-    logger.info(`Successfully enriched bookmark`, { bookmarkId });
+    logger.info('Successfully enriched bookmark', { bookmarkId });
     enrichmentSuccessTotal.inc();
   } catch (error) {
-    logger.error(`Enrichment failed`, { bookmarkId, error: error.message, stack: error.stack });
+    logger.error('Enrichment failed', { bookmarkId, error: error.message, stack: error.stack });
     enrichmentFailureTotal.inc();
     throw error;
   } finally {

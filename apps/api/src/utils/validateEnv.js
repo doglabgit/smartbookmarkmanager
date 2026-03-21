@@ -1,7 +1,7 @@
 const logger = require('../logger');
 
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
-const optionalEnvVars = ['CLAUDE_API_KEY', 'ENRICHMENT_CONCURRENCY', 'REDIS_URL', 'PORT', 'NODE_ENV', 'ALLOWED_ORIGINS'];
+const _optionalEnvVars = ['CLAUDE_API_KEY', 'ENRICHMENT_CONCURRENCY', 'REDIS_URL', 'PORT', 'NODE_ENV', 'ALLOWED_ORIGINS']; // For documentation/future use
 
 function validateEnvironment() {
   const missing = requiredEnvVars.filter((key) => !process.env[key]);

@@ -7,7 +7,7 @@ const { ValidationError } = require('../errors');
  * @returns {Function} Express middleware
  */
 function validate(schema) {
-  return (req, res, next) => {
+  return (req, _res, next) => {
     // Only validate for methods with body (POST, PATCH, PUT)
     if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
       const result = schema.safeParse(req.body);
