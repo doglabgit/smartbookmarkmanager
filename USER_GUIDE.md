@@ -1,7 +1,7 @@
 # Smart Bookmark Manager - User Guide
 
 **Version:** 1.0
-**Last Updated:** March 2025
+**Last Updated:** March 21, 2025
 
 ---
 
@@ -253,6 +253,15 @@ AI summaries are automatically generated descriptions of what a webpage contains
 - You'll see the bookmark immediately, and the summary will appear when ready
 - If the Claude API is unavailable or the URL is invalid, the summary field will remain empty
 
+### AI Summary Availability
+
+AI summaries require the administrator to configure an Anthropic Claude API key. If you notice that summaries are not appearing for any bookmarks, it may be because:
+- The Claude API key is not configured
+- The API quota has been exceeded
+- The system administrator has temporarily disabled AI features
+
+**Note:** The app works perfectly without AI summaries - all core bookmark management features (add, edit, delete, search, filter) work independently.
+
 ### Summary Display
 
 AI summaries are highlighted in a blue box:
@@ -327,6 +336,7 @@ Create a new bookmark and paste this as the URL, then click it while browsing an
 - **Check your credentials**: Ensure your email and password are correct
 - **Caps Lock**: Passwords are case-sensitive
 - **Password reset**: If you've forgotten your password, contact your administrator (password reset may not be implemented)
+- **Session expired**: If you've been logged in for more than 7 days, you'll need to log in again
 
 #### Bookmark Not Saving
 
@@ -334,6 +344,8 @@ Create a new bookmark and paste this as the URL, then click it while browsing an
 - **Required fields**: Only URL is required, but ensure it's a complete URL
 - **Network issues**: Check your internet connection
 - **Server errors**: If you see an error message, note the text and contact support
+- **CSRF token errors**: If you see "CSRF token required", try refreshing the page and logging in again
+- **Cookies disabled**: Ensure your browser accepts cookies (required for authentication)
 
 #### AI Summary Not Appearing
 
@@ -342,6 +354,7 @@ Create a new bookmark and paste this as the URL, then click it while browsing an
 - **Processing delay**: Give it 30-60 seconds, then refresh the page
 - **Page blocked**: Some sites prevent automated access via robots.txt
 - **Rate limits**: If many users are saving simultaneously, there may be a queue
+- **No content**: Pages with minimal text may not generate a summary
 
 #### Favicon Not Showing
 
@@ -390,32 +403,70 @@ Contact your system administrator with your ideas.
 
 ### Your Data
 
-- All your bookmarks are stored in a private database
-- Only you can access your own bookmarks
-- Data is encrypted in transit (HTTPS)
-- Passwords are hashed and never stored in plain text
+- All your bookmarks are stored in a private, isolated database
+- Only you can access your own bookmarks (multi-tenant isolation)
+- Data is encrypted in transit (HTTPS/TLS)
+- Passwords are hashed using bcrypt and never stored in plain text
+- Authentication uses JWT tokens stored in secure, httpOnly cookies (not accessible to JavaScript)
+- Cross-Site Request Forgery (CSRF) protection is enabled for all state-changing operations
 
 ### AI Processing
 
 - URLs you save are sent to Anthropic's Claude API for summarization
 - Anthropic does not use your data to train their models (as of their current business terms)
 - If you're concerned about sending certain URLs to AI, simply don't add them or edit the bookmark to remove the URL after saving
+- AI summaries are completely optional - the app functions without them
+
+### Security Measures in Place
+
+The Smart Bookmark Manager implements industry-standard security practices:
+
+- **Rate Limiting**: Prevents brute-force attacks and abuse
+- **Input Validation**: All inputs are validated and sanitized
+- **SSRF Protection**: Prevents server-side request forgery attacks when fetching metadata
+- **CORS Configuration**: Only allowed origins can make authenticated requests
+- **Helmet Security Headers**: HTTP security headers protect against common web vulnerabilities
+- **Request Tracing**: Each request has a unique ID for audit and debugging
+- **Structured Logging**: All actions are logged without exposing sensitive data
+
+If you have security concerns, contact your system administrator.
 
 ---
 
 ## Feature Roadmap
 
-Future enhancements planned:
+### Currently Implemented ✅
+
+- ✅ Save, edit, and delete bookmarks
+- ✅ Automatic metadata extraction (title, description, favicon)
+- ✅ AI-powered summaries (when Claude API configured)
+- ✅ Tag-based organization with auto-normalization
+- ✅ Real-time search across all fields
+- ✅ Tag filtering with dropdown
+- ✅ Pagination for large bookmark collections
+- ✅ User authentication with JWT
+- ✅ CSRF protection
+- ✅ Rate limiting
+- ✅ SSRF protection
+- ✅ Structured logging and metrics
+- ✅ Health check endpoint
+- ✅ Docker deployment support
+
+### Planned for Future Releases
 
 - Bulk operations (select and delete/edit multiple bookmarks)
-- Export bookmarks (HTML, JSON, CSV formats)
-- Import from browser bookmarks
-- Shareable bookmark collections
+- Export bookmarks (HTML, JSON formats)
+- Import from browser bookmarks (Netscape format)
+- Tag management UI (rename, merge, delete unused tags)
+- Advanced search (date ranges, full-text)
+- Dark mode toggle
+- Keyboard shortcuts for power users
+- Bookmark preview on hover
+- Toast notifications for actions
 - Browser extension for quick saving
-- Full-text search within page content
-- Tag management (rename, merge, delete unused tags)
 - OAuth login (Google, GitHub)
 - Email digests of recent bookmarks
+- Related bookmarks (similar content)
 - API access for developers
 
 ---

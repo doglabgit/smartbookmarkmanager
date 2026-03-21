@@ -165,31 +165,125 @@ cd apps/api && npx prisma migrate reset
 
 ## Deployment
 
-### Recommended Setup
+### Quick Deploy (3-5 minutes)
 
-- **Frontend**: Vercel (automatic Next.js deployment)
-- **Backend + Database**: Railway (or any Postgres provider)
+This application is production-ready and can be deployed to any Node.js + PostgreSQL hosting provider.
+
+#### Option 1: Railway (Recommended for Beginners)
+
+**Backend (API)**:
+1. Create a new Railway service from your GitHub repo
+2. Add a PostgreSQL plugin (creates `DATABASE_URL` automatically)
+3. Set environment variables:
+   - `JWT_SECRET` (generate: `openssl rand -base64 32`)
+   - `ALLOWED_ORIGINS` = your frontend URL (e.g., `https://your-app.vercel.app`)
+   - `NODE_ENV=production`
+   - Optional: `CLAUDE_API_KEY` for AI summaries
+4. Railway automatically builds and deploys
+5. After deploy, run migrations in Railway Shell:
+   ```bash
+   cd /app
+   npx prisma migrate deploy
+   ```
+
+**Frontend**:
+- Deploy to Vercel (automatic from GitHub)
+- Set `NEXT_PUBLIC_API_URL` to your Railway backend URL
+- No other configuration needed
+
+#### Option 2: Render
+
+**Backend**:
+1. Create a new Web Service
+2. Build Command: `npm install && npx prisma generate && npx prisma migrate deploy`
+3. Start Command: `npm start`
+4. Set environment variables (same as Railway)
+5. Add PostgreSQL database (set `DATABASE_URL`)
+
+**Frontend**:
+1. Create a new Static Site
+2. Build Command: `npm run build`
+3. Publish Directory: `.next`
+4. Set `NEXT_PUBLIC_API_URL`
+
+#### Option 3: Docker (Any Provider)
+
+```bash
+# Build images locally
+cd apps/api && docker build -t smartbookmark-api .
+cd ../web && docker build -t smartbookmark-frontend .
+
+# Push to registry
+docker push yourusername/smartbookmark-api
+docker push yourusername/smartbookmark-frontend
+```
+
+Then deploy using your platform's Docker support (Kubernetes, ECS, etc.)
 
 ### Environment Variables for Production
 
-**Vercel (Frontend)**
+**Required:**
+```env
+DATABASE_URL="postgresql://user:pass@host:5432/dbname"
+JWT_SECRET="your-32+char-random-secret-here"
+```
 
-- No special vars needed (proxies configured in `next.config.js`)
+**Recommended:**
+```env
+NODE_ENV=production
+PORT=3000
+ALLOWED_ORIGINS="https://your-frontend.com,https://staging.your-site.com"
+ENRICHMENT_CONCURRENCY=10  # Tune based on DB pool size
+```
 
-**Railway (Backend)**
+**Optional:**
+```env
+CLAUDE_API_KEY="sk-ant-..."  # Enable AI summaries
+REDIS_URL="redis://..."       # For distributed rate limiting (multi-instance)
+```
 
-- `DATABASE_URL` (provided by Railway Postgres plugin)
-- `JWT_SECRET` (set a strong random secret, **required**, at least 32 characters)
-- `CLAUDE_API_KEY` (your Anthropic API key, **optional** — without it, AI summaries are disabled)
-- `ALLOWED_ORIGINS` (comma-separated list of frontend URLs that are allowed to make authenticated requests; **do not use `*`** when credentials (cookies) are enabled; e.g., `https://your-app.vercel.app,https://your-app.netlify.app`)
+⚠️ **Critical Security Notes:**
+- **Never use `*` for `ALLOWED_ORIGINS`** when using cookies (credentials). Set exact frontend URLs.
+- `JWT_SECRET` must be at least 32 random characters. Change from default!
+- Always use HTTPS in production (set `secure: true` cookies automatically via `NODE_ENV=production`)
 
-### Important Production Considerations
+### Database Migrations
 
-- Set `NODE_ENV=production` on the backend
-- Update `JWT_SECRET` to a strong random value (at least 32 chars)
-- Set `ALLOWED_ORIGINS` to your frontend URL(s). Do **not** use `*` when credentials (cookies) are enabled.
-- Railway's free tier sleeps after inactivity - handle cold starts gracefully on the frontend with loading states
-- **After initial deploy**, run `npx prisma migrate deploy` to apply database migrations (connect via API service shell in Render dashboard)
+Migrations are included in the Docker image. On first deploy:
+
+```bash
+# Via platform shell (Railway, Render, etc.)
+npx prisma migrate deploy
+```
+
+For existing databases with data, indexes are created concurrently to avoid locks (see `migrations/*/migration.sql`).
+
+### Performance Optimizations
+
+The application includes:
+- **Database indexes** on `Bookmark(userId, createdAt)`, `Bookmark(userId, enrichedAt)`, and `Tag(name)` for fast queries
+- **Connection pooling** via Prisma (default 5 connections)
+- **Rate limiting** (30 creations/min, 300 reads/min per user)
+- **Response compression** (gzip)
+- **Concurrency control** for enrichment jobs (default 10 parallel)
+
+### Health Checks & Monitoring
+
+**Health Endpoint**: `GET /healthz`
+- Returns 200 only if database is reachable
+- Used by load balancers and uptime monitors
+
+**Metrics Endpoint**: `GET /metrics` (Prometheus format)
+- Request rates, latencies, error counts
+- Enrichment job metrics (active, success, failure)
+- Claude API call counters
+
+**Logs**:
+- JSON structured logs with request IDs
+- Daily rotation (14 days)
+- Separate error log in production
+
+See [BACKUPS_MONITORING.md](BACKUPS_MONITORING.md) for complete monitoring setup and alerting rules.
 
 ## Database Schema
 
@@ -227,8 +321,14 @@ model Tag {
 
   @@unique([userId, name])
   @@index([userId])
+  @@index([name])  // For tag lookup performance
 }
 ```
+
+**Performance Indexes** (added in production):
+- `Bookmark(userId, createdAt)` – Fast pagination and user-specific queries
+- `Bookmark(userId, enrichedAt)` – Efficient enrichment cleanup and monitoring
+- `Tag(name)` – Quick tag search and dropdown population
 
 ## Future Enhancements
 
