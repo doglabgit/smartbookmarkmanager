@@ -2,6 +2,8 @@
 
 A full-stack web application for managing bookmarks with automatic metadata enrichment and AI-powered summaries.
 
+> 📖 **[User Guide](USER_GUIDE.md)** - Comprehensive documentation for end users
+
 ## Features
 
 - Save and organize bookmarks with tags
