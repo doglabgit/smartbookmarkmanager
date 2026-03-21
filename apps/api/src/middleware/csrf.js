@@ -24,12 +24,14 @@ function generateToken() {
 function setCsrfCookie(res, token) {
   // Readable cookie (not httpOnly) so frontend can read it
   // SameSite=Lax prevents some CSRF but not all; we still require header
+  const isDev = process.env.NODE_ENV !== 'production';
   res.cookie('csrfToken', token, {
     httpOnly: false, // Must be readable by frontend
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: !isDev, // true in prod, false in dev
+    sameSite: isDev ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (match session)
     path: '/', // Available to all routes
+    ...(isDev && { domain: 'localhost' }), // Allow cross-port in dev
   });
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
@@ -10,6 +10,29 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          router.push('/bookmarks');
+        }
+      } catch {
+        // Not logged in, stay on register page
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  // Helper: Get CSRF token from cookies
+  const getCsrfToken = () => {
+    const match = document.cookie.match(/csrfToken=([^;]+)/);
+    return match ? match[1] : null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,11 +46,17 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      const csrfToken = getCsrfToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ email, password }),
         credentials: 'include',
       });

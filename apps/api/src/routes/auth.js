@@ -10,10 +10,10 @@ const { registerSchema, loginSchema } = require('../../validation/schemas');
 const prisma = require('../database');
 const router = express.Router();
 
-// Rate limit auth endpoints: 5 requests per minute per IP
+// Rate limit auth endpoints: 5 requests per minute per IP (higher in dev for testing)
 const authRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  max: 5,
+  max: process.env.NODE_ENV === 'development' ? 100 : 5,
   message: 'Too many authentication attempts. Please try again later.'
 });
 
@@ -73,11 +73,15 @@ router.post('/register',
     const csrfToken = generateCsrfToken(); // Separate CSRF token
 
     // Set httpOnly cookie for JWT
+    // In development, use 'none' SameSite and localhost domain to work with cross-origin localhost:3001
+    // In production, use 'lax' (more secure) - assumes frontend and backend share same domain
+    const isDev = process.env.NODE_ENV !== 'production';
     res.cookie('accessToken', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      secure: !isDev, // true in prod, false in dev
+      sameSite: isDev ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      ...(isDev && { domain: 'localhost' }), // Allow cross-port in dev
     });
 
     // Set readable cookie for CSRF token (double-submit pattern)
@@ -128,11 +132,15 @@ router.post('/login',
     const csrfToken = generateCsrfToken(); // Separate CSRF token
 
     // Set httpOnly cookie for JWT
+    // In development, use 'none' SameSite and localhost domain to work with cross-origin localhost:3001
+    // In production, use 'lax' (more secure) - assumes frontend and backend share same domain
+    const isDev = process.env.NODE_ENV !== 'production';
     res.cookie('accessToken', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      secure: !isDev, // true in prod, false in dev
+      sameSite: isDev ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      ...(isDev && { domain: 'localhost' }), // Allow cross-port in dev
     });
 
     // Set readable cookie for CSRF token (double-submit pattern)

@@ -43,12 +43,21 @@ export default function BookmarksPage() {
     return match ? match[1] : null;
   };
 
-  // Check if user is authenticated (simple check for cookie)
+  // Check if user is authenticated by calling the API
   useEffect(() => {
-    const hasToken = document.cookie.includes('accessToken');
-    if (!hasToken) {
-      router.push('/login');
-    }
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          router.push('/login');
+        }
+      } catch {
+        router.push('/login');
+      }
+    };
+    checkAuth();
   }, [router]);
 
   // Fetch bookmarks
