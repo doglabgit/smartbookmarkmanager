@@ -37,3 +37,17 @@ apps/api/prisma/migrations/
 # Misc
 coverage/
 .gstack/
+
+# TypeScript
+*.tsbuildinfo
+
+# Development artifacts (sensitive)
+cookies.txt
+*.cookies.txt
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Development artifacts (sensitive)
+cookies.txt
+*.cookies.txt
