@@ -8,6 +8,10 @@ const { generateSummary } = require('../src/services/claude');
 // Mock global.fetch
 global.fetch = jest.fn();
 
+// Set a fake Claude API key for tests that need it
+const originalClaudeKey = process.env.CLAUDE_API_KEY;
+process.env.CLAUDE_API_KEY = 'test-claude-api-key-12345';
+
 describe('generateSummary', () => {
   const testUrl = 'https://example.com/article';
   const testTitle = 'Example Article';
@@ -49,6 +53,7 @@ describe('generateSummary', () => {
     fetch.mockResolvedValueOnce({
       ok: false,
       status: 429,
+      statusText: 'Too Many Requests',
       json: async () => ({ error: { message: 'Rate limit exceeded' } })
     });
 
@@ -60,6 +65,7 @@ describe('generateSummary', () => {
     fetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
+      statusText: 'Internal Server Error',
       json: async () => ({ error: { message: 'Internal server error' } })
     });
 
@@ -70,7 +76,7 @@ describe('generateSummary', () => {
   it('should handle malformed JSON response', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => { throw new Error('Invalid JSON'); }
+      json: async () => { throw new SyntaxError('Unexpected token < in JSON at position 0'); }
     });
 
     await expect(generateSummary(testUrl, testTitle, testDescription))
@@ -144,5 +150,14 @@ describe('generateSummary', () => {
 
     const result = await generateSummary(testUrl, '', '');
     expect(result).toBe('Insufficient information to generate a summary.');
+  });
+
+  afterAll(() => {
+    // Restore original CLAUDE_API_KEY
+    if (originalClaudeKey) {
+      process.env.CLAUDE_API_KEY = originalClaudeKey;
+    } else {
+      delete process.env.CLAUDE_API_KEY;
+    }
   });
 });

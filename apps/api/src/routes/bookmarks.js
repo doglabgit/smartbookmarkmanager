@@ -1,5 +1,6 @@
 const express = require('express');
 const asyncHandler = require('../utils/asyncHandler');
+const authMiddleware = require('../middleware/auth');
 const { createRateLimiter } = require('../middleware/rateLimiter');
 const { validate } = require('../middleware/validate');
 const { bookmarkCreateSchema, bookmarkUpdateSchema } = require('../../validation/schemas');

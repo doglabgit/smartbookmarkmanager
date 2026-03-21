@@ -13,8 +13,15 @@ const { cleanupTestData, prisma } = require('./helpers');
 const { enrichBookmark } = require('../src/services/enrichment');
 
 // Mock external services
+jest.mock('../src/services/metadata');
+jest.mock('../src/services/claude');
+
 const { fetchMetadata } = require('../src/services/metadata');
 const { generateSummary } = require('../src/services/claude');
+
+// Set a fake Claude API key for tests that need it
+const originalClaudeKey = process.env.CLAUDE_API_KEY;
+process.env.CLAUDE_API_KEY = 'test-claude-api-key-12345';
 
 describe('Enrichment Pipeline', () => {
   let authCookie;
@@ -45,17 +52,17 @@ describe('Enrichment Pipeline', () => {
   });
 
   it('should enrich bookmark fully when CLAUDE_API_KEY is set', async () => {
-    // Mock metadata fetch
-    fetchMetadata.mockResolvedValueOnce({
+    // Mock metadata fetch to always return same data (may be called multiple times)
+    fetchMetadata.mockResolvedValue({
       title: 'Fetched Title',
       description: 'Fetched Description',
       faviconUrl: 'https://example.com/favicon.ico'
     });
 
-    // Mock Claude summary
-    generateSummary.mockResolvedValueOnce('AI generated summary');
+    // Mock Claude summary to always return same summary
+    generateSummary.mockResolvedValue('AI generated summary');
 
-    // Create bookmark
+    // Create bookmark - this triggers async enrichment
     const createRes = await request(app)
       .post('/api/bookmarks')
       .send({ url: 'https://example.com/article' })
@@ -67,9 +74,9 @@ describe('Enrichment Pipeline', () => {
     // Initially, enrichedAt should be null, title should be empty (user didn't provide)
     let bookmark = await prisma.bookmark.findUnique({ where: { id: bookmarkId } });
     expect(bookmark.enrichedAt).toBeNull();
-    expect(bookmark.title).toBe('Fetched Title'); // Title might be set from metadata already if we run enrichment synchronously in test
+    expect(bookmark.title).toBeNull(); // No title provided initially
 
-    // Manually run enrichment synchronously (wait for it)
+    // Manually run enrichment to ensure completion
     await enrichBookmark(bookmarkId);
 
     // Check enriched bookmark
@@ -89,7 +96,8 @@ describe('Enrichment Pipeline', () => {
     const originalKey = process.env.CLAUDE_API_KEY;
     delete process.env.CLAUDE_API_KEY;
 
-    fetchMetadata.mockResolvedValueOnce({
+    // Mock metadata fetch to always return data
+    fetchMetadata.mockResolvedValue({
       title: 'Metadata Title',
       description: 'Metadata Description',
       faviconUrl: null
@@ -103,7 +111,7 @@ describe('Enrichment Pipeline', () => {
 
     const bookmarkId = createRes.body.data.bookmark.id;
 
-    // Run enrichment
+    // Run enrichment manually (auto also runs, but manual ensures completion)
     await enrichBookmark(bookmarkId);
 
     const bookmark = await prisma.bookmark.findUnique({ where: { id: bookmarkId } });
@@ -116,13 +124,15 @@ describe('Enrichment Pipeline', () => {
   });
 
   it('should continue enrichment if Claude API fails', async () => {
-    fetchMetadata.mockResolvedValueOnce({
+    // Mock metadata fetch to always return data
+    fetchMetadata.mockResolvedValue({
       title: 'Metadata Only',
       description: 'Desc',
       faviconUrl: null
     });
 
-    generateSummary.mockRejectedValueOnce(new Error('Claude API 500'));
+    // Mock Claude summary to always reject
+    generateSummary.mockRejectedValue(new Error('Claude API 500'));
 
     const createRes = await request(app)
       .post('/api/bookmarks')
@@ -132,6 +142,7 @@ describe('Enrichment Pipeline', () => {
 
     const bookmarkId = createRes.body.data.bookmark.id;
 
+    // Manually ensure enrichment completes
     await enrichBookmark(bookmarkId);
 
     const bookmark = await prisma.bookmark.findUnique({ where: { id: bookmarkId } });
@@ -142,7 +153,8 @@ describe('Enrichment Pipeline', () => {
   });
 
   it('should handle metadata fetch failure gracefully', async () => {
-    fetchMetadata.mockResolvedValueOnce({
+    // Mock metadata fetch to always return nulls (simulate failure)
+    fetchMetadata.mockResolvedValue({
       title: null,
       description: null,
       faviconUrl: null
@@ -175,7 +187,7 @@ describe('Enrichment Pipeline', () => {
 
   it('should not block POST response while enrichment runs', async () => {
     // Make metadata fetch take a while
-    fetchMetadata.mockImplementationOnce(() => new Promise(resolve => setTimeout(() => resolve({
+    fetchMetadata.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({
       title: 'Slow fetch',
       description: null,
       faviconUrl: null
@@ -204,12 +216,12 @@ describe('Enrichment Pipeline', () => {
   });
 
   it('should log enrichment lifecycle steps', async () => {
-    fetchMetadata.mockResolvedValueOnce({
+    fetchMetadata.mockResolvedValue({
       title: 'Logging Test',
       description: null,
       faviconUrl: null
     });
-    generateSummary.mockResolvedValueOnce('Summary');
+    generateSummary.mockResolvedValue('Summary');
 
     await request(app)
       .post('/api/bookmarks')
@@ -228,5 +240,14 @@ describe('Enrichment Pipeline', () => {
     // This test would require setting up request context properly
     // For now, we trust CLS works. Could add explicit test with mocked context.
     expect(true).toBe(true);
+  });
+
+  afterAll(() => {
+    // Restore original CLAUDE_API_KEY
+    if (originalClaudeKey) {
+      process.env.CLAUDE_API_KEY = originalClaudeKey;
+    } else {
+      delete process.env.CLAUDE_API_KEY;
+    }
   });
 });
