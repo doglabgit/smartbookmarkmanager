@@ -96,3 +96,17 @@ cd apps/api && npx prisma generate
 - Do not use GraphQL
 - Do not install new heavy dependencies without flagging it first
 - Do not call Claude API from anywhere except `apps/api/src/services/claude.js`
+
+## Design System
+
+Always read `DESIGN.md` before making any visual or UI decisions. All font choices, colors, spacing, and aesthetic direction are defined there.
+
+Key principles:
+- Typography: Helvetica Neue (display + body), JetBrains Mono (data/code)
+- Color: Indigo primary, restrained palette, dark mode first-class
+- Spacing: 8px base unit, comfortable density
+- Layout: Grid-disciplined, 12-column system
+- Motion: Minimal-functional, only for state changes
+- Border radius: Hierarchical (4px, 8px, 12px, pill)
+
+Do not deviate from DESIGN.md without explicit user approval. In QA or review mode, flag any code that doesn't match the design system.
