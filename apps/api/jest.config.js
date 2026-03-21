@@ -19,7 +19,9 @@ const config = {
   modulePathIgnorePatterns: ['<rootDir>/../.next/'],
   clearMocks: true,
   resetMocks: true,
-  restoreMocks: true
+  restoreMocks: true,
+  // Run tests sequentially to avoid database conflicts (shared test DB)
+  maxWorkers: 1
 };
 
 module.exports = config;
