@@ -1,11 +1,9 @@
-# Render Blueprint - tested format
-# https://render.com/docs/blueprint-spec
+# Render Blueprint Manifest
 
 databases:
   - type: postgres
     name: smartbookmark-db
     plan: free
-    version: "15"
 
 services:
   - type: web
@@ -13,15 +11,12 @@ services:
     env: docker
     dockerfilePath: apps/api/Dockerfile
     plan: free
-    buildCommand: ""
-    startCommand: node index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "3000"
       - key: DATABASE_URL
-        value: ""
         fromDatabase:
           name: smartbookmark-db
           property: connectionString
@@ -38,8 +33,6 @@ services:
     env: docker
     dockerfilePath: apps/web/Dockerfile
     plan: free
-    buildCommand: ""
-    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
