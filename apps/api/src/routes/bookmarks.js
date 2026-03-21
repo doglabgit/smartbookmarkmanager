@@ -17,6 +17,17 @@ const createBookmarkRateLimiter = process.env.NODE_ENV === 'test'
       message: 'Too many bookmark creations. Please slow down.'
     });
 
+// Rate limit bookmark reads: 300 per minute per user ID (generous, but prevents abuse)
+// Disable in test environment
+const readBookmarksRateLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter({
+      windowMs: 60 * 1000,
+      max: 300,
+      keyGenerator: (req) => req.user?.id || 'anonymous',
+      message: 'Too many requests. Please slow down.'
+    });
+
 // Helper to trigger background enrichment
 const logger = require('../logger');
 
@@ -30,8 +41,19 @@ async function triggerEnrichment(bookmarkId) {
   }
 }
 
+// GET /api/bookmarks/tags - Get distinct tag names for the user
+router.get('/tags', authMiddleware, asyncHandler(async (req, res) => {
+  const tags = await prisma.tag.findMany({
+    where: { userId: req.user.id },
+    distinct: ['name'],
+    select: { name: true }
+  });
+  const tagNames = tags.map(t => t.name).sort();
+  res.status(200).json({ data: { tags: tagNames } });
+}));
+
 // GET /api/bookmarks - List all bookmarks for the user
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', readBookmarksRateLimiter, asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   let limit = parseInt(req.query.limit, 10) || 20;
   const MAX_LIMIT = 100;

@@ -195,11 +195,27 @@ export default function BookmarksPage() {
     router.refresh();
   };
 
-  const getUniqueTags = () => {
-    const allTags = new Set<string>();
-    bookmarks.forEach(b => b.tags.forEach(t => allTags.add(t.name)));
-    return Array.from(allTags).sort();
-  };
+  // Fetch distinct tags for filter dropdown (more efficient than looping)
+  const [allTags, setAllTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/bookmarks/tags', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAllTags(data.data.tags);
+        }
+      } catch (err) {
+        console.error('Failed to fetch tags:', err);
+      }
+    };
+    fetchTags();
+  }, []);
+
+  // Replaced getUniqueTags with server-side distinct query
 
   if (loading && bookmarks.length === 0) {
     return (
@@ -311,7 +327,7 @@ export default function BookmarksPage() {
           className="p-2 border rounded-md"
         >
           <option value="">All Tags</option>
-          {getUniqueTags().map(tag => (
+          {allTags.map(tag => (
             <option key={tag} value={tag}>{tag}</option>
           ))}
         </select>

@@ -416,4 +416,52 @@ describe('Bookmark Routes', () => {
       expect(response.body.error).toBe('Bookmark not found');
     });
   });
+
+  describe('GET /api/bookmarks/tags', () => {
+    it('should return distinct tags sorted alphabetically', async () => {
+      // Create bookmarks with tags
+      await request(app)
+        .post('/api/bookmarks')
+        .send({
+          url: 'https://example1.com',
+          tags: ['react', 'javascript']
+        })
+        .set('Cookie', authCookie)
+        .expect(201);
+
+      await request(app)
+        .post('/api/bookmarks')
+        .send({
+          url: 'https://example2.com',
+          tags: ['vue', 'javascript']
+        })
+        .set('Cookie', authCookie)
+        .expect(201);
+
+      await request(app)
+        .post('/api/bookmarks')
+        .send({
+          url: 'https://example3.com',
+          tags: ['react', 'typescript']
+        })
+        .set('Cookie', authCookie)
+        .expect(201);
+
+      const response = await request(app)
+        .get('/api/bookmarks/tags')
+        .set('Cookie', authCookie)
+        .expect(200);
+
+      expect(response.body.data.tags).toEqual(['javascript', 'react', 'typescript', 'vue']);
+    });
+
+    it('should return empty array when no tags', async () => {
+      const response = await request(app)
+        .get('/api/bookmarks/tags')
+        .set('Cookie', authCookie)
+        .expect(200);
+
+      expect(response.body.data.tags).toEqual([]);
+    });
+  });
 });

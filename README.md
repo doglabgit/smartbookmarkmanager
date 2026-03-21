@@ -240,6 +240,22 @@ model Tag {
 - OAuth support (Google, GitHub)
 - Email digest of recent bookmarks
 
+## Production Operations
+
+### Monitoring & Alerting
+
+See [BACKUPS_MONITORING.md](BACKUPS_MONITORING.md) for:
+- Health check setup
+- Prometheus metrics interpretation
+- Recommended alerting rules
+- Logging configuration
+- Disaster recovery runbook
+
+### Backups
+
+Automated daily backups are **required** for production deployments.
+See [BACKUPS_MONITORING.md](BACKUPS_MONITORING.md) for backup strategies and restore procedures.
+
 ## License
 
 MIT
